@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,90 +6,96 @@
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
     h1 { text-align: center; }
-    .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+    .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
     input, button { padding: 8px; margin: 5px 0; width: 100%; }
     ul { list-style: none; padding: 0; }
     li { margin: 5px 0; }
     .done { text-decoration: line-through; color: gray; }
-    #dday { font-size: 20px; font-weight: bold; text-align: center; }
+    .parcial { border: 1px solid #ddd; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
+    .parcial h3 { margin: 0 0 5px 0; }
   </style>
 </head>
-<body>
+<body><h1>📚 Organizador de Parciales</h1><div class="card">
+  <h2>Nuevo parcial</h2>
+  <input type="text" id="nombreParcial" placeholder="Ej: Morfología - Miembro Inferior" />
+  <input type="date" id="fechaParcial" />
+  <button onclick="crearParcial()">Crear parcial</button>
+</div><div id="contenedorParciales"></div><script>
+  let parciales = JSON.parse(localStorage.getItem('parciales')) || [];
 
-<h1>📚 Organizador de Parciales</h1>
-
-<div class="card">
-  <h2>Fecha del parcial</h2>
-  <input type="date" id="examDate" />
-  <button onclick="calcularDDay()">Calcular D-DAY</button>
-  <p id="dday"></p>
-</div>
-
-<div class="card">
-  <h2>Agregar temas</h2>
-  <input type="text" id="temaInput" placeholder="Ej: Sistema nervioso" />
-  <button onclick="agregarTema()">Agregar tema</button>
-</div>
-
-<div class="card">
-  <h2>Temario</h2>
-  <ul id="listaTemas"></ul>
-</div>
-
-<script>
-  let temas = JSON.parse(localStorage.getItem('temas')) || [];
-
-  function guardarTemas() {
-    localStorage.setItem('temas', JSON.stringify(temas));
+  function guardar() {
+    localStorage.setItem('parciales', JSON.stringify(parciales));
   }
 
-  function agregarTema() {
-    const input = document.getElementById('temaInput');
-    if (input.value === '') return;
-    temas.push({ nombre: input.value, hecho: false });
+  function crearParcial() {
+    const nombre = document.getElementById('nombreParcial').value;
+    const fecha = document.getElementById('fechaParcial').value;
+    if (!nombre || !fecha) return;
+
+    parciales.push({
+      nombre,
+      fecha,
+      temas: []
+    });
+
+    document.getElementById('nombreParcial').value = '';
+    document.getElementById('fechaParcial').value = '';
+
+    guardar();
+    render();
+  }
+
+  function agregarTema(pIndex) {
+    const input = document.getElementById(`tema-${pIndex}`);
+    if (!input.value) return;
+    parciales[pIndex].temas.push({ nombre: input.value, hecho: false });
     input.value = '';
-    guardarTemas();
-    renderTemas();
+    guardar();
+    render();
   }
 
-  function toggleTema(index) {
-    temas[index].hecho = !temas[index].hecho;
-    guardarTemas();
-    renderTemas();
+  function toggleTema(pIndex, tIndex) {
+    const tema = parciales[pIndex].temas[tIndex];
+    tema.hecho = !tema.hecho;
+    guardar();
+    render();
   }
 
-  function renderTemas() {
-    const ul = document.getElementById('listaTemas');
-    ul.innerHTML = '';
-    temas.forEach((tema, index) => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <input type="checkbox" onchange="toggleTema(${index})" ${tema.hecho ? 'checked' : ''} />
-        <span class="${tema.hecho ? 'done' : ''}">${tema.nombre}</span>
+  function calcularDDay(fecha) {
+    const hoy = new Date();
+    const parcial = new Date(fecha);
+    const diff = parcial - hoy;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  function render() {
+    const cont = document.getElementById('contenedorParciales');
+    cont.innerHTML = '';
+
+    parciales.forEach((parcial, pIndex) => {
+      const div = document.createElement('div');
+      div.className = 'parcial';
+
+      div.innerHTML = `
+        <h3>📝 ${parcial.nombre}</h3>
+        <p>📅 D-DAY: ${calcularDDay(parcial.fecha)} días</p>
+        <input type="text" id="tema-${pIndex}" placeholder="Agregar tema" />
+        <button onclick="agregarTema(${pIndex})">Agregar</button>
+        <ul>
+          ${parcial.temas.map((t, tIndex) => `
+            <li>
+              <input type="checkbox" ${t.hecho ? 'checked' : ''}
+                onchange="toggleTema(${pIndex}, ${tIndex})" />
+              <span class="${t.hecho ? 'done' : ''}">${t.nombre}</span>
+            </li>
+          `).join('')}
+        </ul>
       `;
-      ul.appendChild(li);
+
+      cont.appendChild(div);
     });
   }
 
-  function calcularDDay() {
-    const input = document.getElementById('examDate');
-    const examDate = new Date(input.value);
-    const today = new Date();
-    const diff = examDate - today;
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    document.getElementById('dday').innerText = `D-DAY: ${days} días`;
-    localStorage.setItem('examDate', input.value);
-  }
-
-  // Cargar datos guardados
-  const savedDate = localStorage.getItem('examDate');
-  if (savedDate) {
-    document.getElementById('examDate').value = savedDate;
-    calcularDDay();
-  }
-
-  renderTemas();
-</script>
-
-</body>
+  render();
+</script></body>
 </html>
