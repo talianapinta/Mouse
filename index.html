@@ -27,7 +27,7 @@
     <h2>Temario</h2>
     <ul id="listaTemas"></ul>
   </div>  <script>
-    let temas = [];
+    let temas = JSON.parse(localStorage.getItem('temas')) || [];
 
     function agregarTema() {
       const input = document.getElementById('temaInput');
@@ -35,11 +35,18 @@
       temas.push({ nombre: input.value, hecho: false });
       input.value = '';
       renderTemas();
+      guardarTemas();
+      guardarTemas();
     }
 
     function toggleTema(index) {
       temas[index].hecho = !temas[index].hecho;
       renderTemas();
+      guardarTemas();
+    }
+
+    function guardarTemas() {
+      localStorage.setItem('temas', JSON.stringify(temas));
     }
 
     function renderTemas() {
@@ -58,7 +65,7 @@
       const diff = examDate - today;
       const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
       document.getElementById('dday').innerText = `D-DAY: ${days} días`;
+      localStorage.setItem('examDate', document.getElementById('examDate').value);
     }
   </script></body>
 </html>
-
