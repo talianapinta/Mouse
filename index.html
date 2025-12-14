@@ -4,95 +4,157 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Organizador de Parciales</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #000000;
+    }
+    body.dark {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #ffffff;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
     h1 { text-align: center; }
-    .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-    input, button { padding: 8px; margin: 5px 0; width: 100%; }
+    .card {
+      background: var(--card);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
     ul { list-style: none; padding: 0; }
     li { margin: 5px 0; }
     .done { text-decoration: line-through; color: gray; }
-    .parcial { border: 1px solid #ddd; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
-    .parcial h3 { margin: 0 0 5px 0; }
+    .parcial {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 15px;
+    }
+    .progress {
+      height: 8px;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 5px 0 10px 0;
+    }
+    .progress div {
+      height: 100%;
+      background: #4caf50;
+    }
+    .today { font-weight: bold; }
   </style>
 </head>
 <body><h1>📚 Organizador de Parciales</h1><div class="card">
+  <button onclick="toggleDark()">🌙 / ☀️ Modo oscuro</button>
+</div><div class="card">
   <h2>Nuevo parcial</h2>
-  <input type="text" id="nombreParcial" placeholder="Ej: Morfología - Miembro Inferior" />
+  <input type="text" id="nombreParcial" placeholder="Nombre del parcial" />
   <input type="date" id="fechaParcial" />
   <button onclick="crearParcial()">Crear parcial</button>
 </div><div id="contenedorParciales"></div><script>
   let parciales = JSON.parse(localStorage.getItem('parciales')) || [];
+  let dark = localStorage.getItem('dark') === 'true';
+  if (dark) document.body.classList.add('dark');
 
   function guardar() {
     localStorage.setItem('parciales', JSON.stringify(parciales));
+    localStorage.setItem('dark', dark);
+  }
+
+  function toggleDark() {
+    dark = !dark;
+    document.body.classList.toggle('dark');
+    guardar();
   }
 
   function crearParcial() {
-    const nombre = document.getElementById('nombreParcial').value;
-    const fecha = document.getElementById('fechaParcial').value;
+    const nombre = nombreParcial.value;
+    const fecha = fechaParcial.value;
     if (!nombre || !fecha) return;
-
-    parciales.push({
-      nombre,
-      fecha,
-      temas: []
-    });
-
-    document.getElementById('nombreParcial').value = '';
-    document.getElementById('fechaParcial').value = '';
-
+    parciales.push({ nombre, fecha, temas: [] });
+    nombreParcial.value = '';
+    fechaParcial.value = '';
+    ordenar();
     guardar();
     render();
   }
 
-  function agregarTema(pIndex) {
-    const input = document.getElementById(`tema-${pIndex}`);
+  function agregarTema(p) {
+    const input = document.getElementById(`tema-${p}`);
     if (!input.value) return;
-    parciales[pIndex].temas.push({ nombre: input.value, hecho: false });
+    parciales[p].temas.push({ nombre: input.value, hecho: false });
     input.value = '';
     guardar();
     render();
   }
 
-  function toggleTema(pIndex, tIndex) {
-    const tema = parciales[pIndex].temas[tIndex];
-    tema.hecho = !tema.hecho;
+  function toggleTema(p, t) {
+    parciales[p].temas[t].hecho = !parciales[p].temas[t].hecho;
     guardar();
     render();
   }
 
-  function calcularDDay(fecha) {
+  function dday(fecha) {
     const hoy = new Date();
-    const parcial = new Date(fecha);
-    const diff = parcial - hoy;
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    const f = new Date(fecha);
+    return Math.ceil((f - hoy) / (1000*60*60*24));
+  }
+
+  function progreso(parcial) {
+    if (parcial.temas.length === 0) return 0;
+    const hechos = parcial.temas.filter(t => t.hecho).length;
+    return Math.round((hechos / parcial.temas.length) * 100);
+  }
+
+  function hoyToca(parcial) {
+    const dias = dday(parcial.fecha);
+    if (dias <= 0) return [];
+    const pendientes = parcial.temas.filter(t => !t.hecho);
+    const porDia = Math.ceil(pendientes.length / dias);
+    return pendientes.slice(0, porDia).map(t => t.nombre);
+  }
+
+  function ordenar() {
+    parciales.sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
   }
 
   function render() {
-    const cont = document.getElementById('contenedorParciales');
-    cont.innerHTML = '';
-
-    parciales.forEach((parcial, pIndex) => {
+    ordenar();
+    contenedorParciales.innerHTML = '';
+    parciales.forEach((p, i) => {
+      const prog = progreso(p);
+      const hoy = hoyToca(p);
       const div = document.createElement('div');
       div.className = 'parcial';
-
       div.innerHTML = `
-        <h3>📝 ${parcial.nombre}</h3>
-        <p>📅 D-DAY: ${calcularDDay(parcial.fecha)} días</p>
-        <input type="text" id="tema-${pIndex}" placeholder="Agregar tema" />
-        <button onclick="agregarTema(${pIndex})">Agregar</button>
+        <h3>📝 ${p.nombre}</h3>
+        <p>📅 D-DAY: ${dday(p.fecha)} días</p>
+        <div class="progress"><div style="width:${prog}%"></div></div>
+        <p>${prog}% completado</p>
+        <p class="today">📌 Hoy estudiar: ${hoy.length ? hoy.join(', ') : 'Nada 🎉'}</p>
+        <input id="tema-${i}" placeholder="Agregar tema" />
+        <button onclick="agregarTema(${i})">Agregar</button>
         <ul>
-          ${parcial.temas.map((t, tIndex) => `
+          ${p.temas.map((t,j)=>`
             <li>
-              <input type="checkbox" ${t.hecho ? 'checked' : ''}
-                onchange="toggleTema(${pIndex}, ${tIndex})" />
-              <span class="${t.hecho ? 'done' : ''}">${t.nombre}</span>
+              <input type="checkbox" ${t.hecho?'checked':''} onchange="toggleTema(${i},${j})" />
+              <span class="${t.hecho?'done':''}">${t.nombre}</span>
             </li>
           `).join('')}
         </ul>
       `;
-
-      cont.appendChild(div);
+      contenedorParciales.appendChild(div);
     });
   }
 
