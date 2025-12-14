@@ -1,3 +1,4 @@
+
 <!DOCTYPE html><html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -8,27 +9,42 @@ body{font-family:Arial,sans-serif;background:#f6f6f6;margin:0;padding:20px}
 h1{text-align:center;margin-bottom:5px}
 h2{text-align:center;font-weight:normal;margin-top:0}.dashboard{display:flex;gap:15px;margin:20px 0} .card-top{flex:1;background:#fff;border-radius:12px;padding:15px;border:1px solid #ddd} .progress{height:8px;background:#eee;border-radius:10px;overflow:hidden;margin-top:8px} .progress div{height:100%;background:#000}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px} .parcial-card{background:#fff;border-radius:12px;border:1px solid #ddd;height:200px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px} .parcial-card:hover{background:#f0f0f0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px} .parcial-card{background:#fff;border-radius:12px;border:1px solid #ddd;height:200px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px} .parcial-card:hover{background:#f0f0f0} .new{border:2px dashed #aaa;font-size:24px}
 
-.new{border:2px dashed #aaa;font-size:24px}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center} .modal-content{background:#fff;padding:20px;border-radius:12px;width:95%;max-width:500px;max-height:90%;overflow:auto}
 
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center} .modal-content{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:400px} input,button{width:100%;padding:8px;margin-top:8px} button{background:#000;color:#fff;border:none;border-radius:8px} </style>
+input,button{width:100%;padding:8px;margin-top:8px} button{background:#000;color:#fff;border:none;border-radius:8px} button.secondary{background:#888}
+
+ul{list-style:none;padding:0} li{margin:6px 0} .done{text-decoration:line-through;color:gray} </style>
 
 </head>
 <body><h1>PROYECTO X</h1>
 <h2>Bienvenido ¿qué hay hoy para hacer?</h2><div class="dashboard" id="hoy"></div><h3>Todos los parciales</h3>
-<div class="grid" id="lista"></div><div class="modal" id="modal">
+<div class="grid" id="lista"></div><!-- Modal nuevo parcial --><div class="modal" id="modalNuevo">
   <div class="modal-content">
     <h3>Nuevo parcial</h3>
     <input id="nombre" placeholder="Nombre del parcial" />
     <input id="fecha" type="date" />
     <button onclick="guardarParcial()">Guardar</button>
   </div>
+</div><!-- Modal detalle parcial --><div class="modal" id="modalDetalle">
+  <div class="modal-content">
+    <h3 id="detalleTitulo"></h3>
+    <p id="detalleFecha"></p>
+    <p><b>Progreso:</b> <span id="detalleProg">0</span>%</p>
+    <div class="progress"><div id="detalleBarra"></div></div><h4>Temas</h4>
+<input id="nuevoTema" placeholder="Nuevo tema" />
+<button onclick="agregarTema()">Agregar tema</button>
+<ul id="listaTemas"></ul>
+
+<button class="secondary" onclick="cerrarDetalle()">Cerrar</button>
+
+  </div>
 </div><script>
 let parciales=JSON.parse(localStorage.getItem('parciales'))||[];
+let parcialActual=null;
 
 function guardar(){localStorage.setItem('parciales',JSON.stringify(parciales))}
-
 function dday(f){return Math.ceil((new Date(f)-new Date())/(1000*60*60*24))}
 
 function render(){
@@ -39,34 +55,84 @@ function render(){
   parciales.slice(0,2).forEach(p=>{
     const div=document.createElement('div');
     div.className='card-top';
-    div.innerHTML=`<b>${p.nombre}</b><br>D‑DAY ${dday(p.fecha)}<br>Progreso ${p.progreso||0}%
+    const emoji=p.emoji||'📘';
+    div.innerHTML=`<div style="font-size:24px">${emoji}</div><b>${p.nombre}</b><br>D-DAY ${dday(p.fecha)}<br>${p.progreso||0}%
     <div class='progress'><div style='width:${p.progreso||0}%'></div></div>`;
     hoy.appendChild(div);
   })
 
-  parciales.forEach(p=>{
+  parciales.forEach((p,i)=>{
     const div=document.createElement('div');
     div.className='parcial-card';
-    div.innerText=p.nombre;
+    const emoji=p.emoji||'📘';
+    div.innerHTML=`<div style="font-size:28px">${emoji}</div><div><b>${p.nombre}</b><br>D-DAY ${dday(p.fecha)}<br>${p.progreso||0}%</div>`;
+    div.onclick=()=>abrirDetalle(i);
     lista.appendChild(div);
   })
 
   const nuevo=document.createElement('div');
   nuevo.className='parcial-card new';
   nuevo.innerText='+';
-  nuevo.onclick=()=>document.getElementById('modal').style.display='flex';
+  nuevo.onclick=()=>document.getElementById('modalNuevo').style.display='flex';
   lista.appendChild(nuevo);
 }
 
 function guardarParcial(){
-  parciales.push({nombre:nombre.value,fecha:fecha.value,progreso:0});
+  parciales.push({nombre:nombre.value,fecha:fecha.value,temas:[],progreso:0});
   guardar();
-  document.getElementById('modal').style.display='none';
+  document.getElementById('modalNuevo').style.display='none';
   nombre.value=''; fecha.value='';
   render();
+}
+
+function abrirDetalle(i){
+  parcialActual=i;
+  const p=parciales[i];
+  document.getElementById('detalleTitulo').innerText=p.nombre;
+  document.getElementById('detalleFecha').innerText='D-DAY '+dday(p.fecha);
+  actualizarDetalle();
+  document.getElementById('modalDetalle').style.display='flex';
+}
+
+function cerrarDetalle(){document.getElementById('modalDetalle').style.display='none'}
+
+function agregarTema(){
+  const t=nuevoTema.value.trim();
+  if(!t)return;
+  parciales[parcialActual].temas.push({nombre:t,hecho:false});
+  nuevoTema.value='';
+  recalcular();
+}
+
+function toggleTema(i){
+  const tema=parciales[parcialActual].temas[i];
+  tema.hecho=!tema.hecho;
+  recalcular();
+}
+
+function recalcular(){
+  const p=parciales[parcialActual];
+  const total=p.temas.length;
+  const hechos=p.temas.filter(t=>t.hecho).length;
+  p.progreso=total?Math.round((hechos/total)*100):0;
+  guardar();
+  actualizarDetalle();
+  render();
+}
+
+function actualizarDetalle(){
+  const p=parciales[parcialActual];
+  document.getElementById('detalleProg').innerText=p.progreso;
+  document.getElementById('detalleBarra').style.width=p.progreso+'%';
+  const ul=document.getElementById('listaTemas');
+  ul.innerHTML='';
+  p.temas.forEach((t,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<input type='checkbox' ${t.hecho?'checked':''} onchange='toggleTema(${i})'/> <span class='${t.hecho?'done':''}'>${t.nombre}</span>`;
+    ul.appendChild(li);
+  })
 }
 
 render();
 </script></body>
 </html>
-  
