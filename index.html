@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organizador de Parciales</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
+    h1 { text-align: center; }
+    .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+    input, button { padding: 8px; margin: 5px 0; width: 100%; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 5px 0; }
+    .done { text-decoration: line-through; color: gray; }
+    #dday { font-size: 20px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>  <h1>📚 Organizador de Parciales</h1>  <div class="card">
+    <h2>Fecha del parcial</h2>
+    <input type="date" id="examDate" />
+    <button onclick="calcularDDay()">Calcular D-DAY</button>
+    <p id="dday"></p>
+  </div>  <div class="card">
+    <h2>Agregar temas</h2>
+    <input type="text" id="temaInput" placeholder="Ej: Sistema nervioso" />
+    <button onclick="agregarTema()">Agregar tema</button>
+  </div>  <div class="card">
+    <h2>Temario</h2>
+    <ul id="listaTemas"></ul>
+  </div>  <script>
+    let temas = [];
+
+    function agregarTema() {
+      const input = document.getElementById('temaInput');
+      if (input.value === '') return;
+      temas.push({ nombre: input.value, hecho: false });
+      input.value = '';
+      renderTemas();
+    }
+
+    function toggleTema(index) {
+      temas[index].hecho = !temas[index].hecho;
+      renderTemas();
+    }
+
+    function renderTemas() {
+      const ul = document.getElementById('listaTemas');
+      ul.innerHTML = '';
+      temas.forEach((tema, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<input type="checkbox" onchange="toggleTema(${index})" ${tema.hecho ? 'checked' : ''} /> <span class="${tema.hecho ? 'done' : ''}">${tema.nombre}</span>`;
+        ul.appendChild(li);
+      });
+    }
+
+    function calcularDDay() {
+      const examDate = new Date(document.getElementById('examDate').value);
+      const today = new Date();
+      const diff = examDate - today;
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      document.getElementById('dday').innerText = `D-DAY: ${days} días`;
+    }
+  </script></body>
+</html>
+
