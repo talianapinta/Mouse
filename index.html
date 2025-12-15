@@ -6,94 +6,104 @@
 <style>
 body{font-family:Arial,sans-serif;background:#f6f6f6;margin:0;padding:20px}
 h1{text-align:center;margin-bottom:5px}
-h2{text-align:center;font-weight:normal;margin-top:0}.dashboard{display:flex;gap:15px;margin:20px 0} .card-top{flex:1;background:#fff;border-radius:12px;padding:15px;border:1px solid #ddd} .progress{height:8px;background:#eee;border-radius:10px;overflow:hidden;margin-top:8px} .progress div{height:100%;background:#000}
+h2{text-align:center;font-weight:normal;margin-top:0}.dashboard{display:flex;gap:15px;margin:20px 0} .card-top{flex:1;background:#fff;border-radius:12px;padding:15px;border:1px solid #ddd}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px} .parcial-card{background:#fff;border-radius:12px;border:1px solid #ddd;height:200px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;text-align:center;padding:10px} .parcial-card:hover{background:#f0f0f0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px} .parcial-card{background:#fff;border-radius:12px;border:1px solid #ddd;height:180px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center} .parcial-card:hover{background:#f0f0f0}
 
-.new{border:2px dashed #aaa;font-size:32px}
+.new{ border:2px dashed #999; font-size:48px; font-weight:bold; color:#666; }
 
 .hidden{display:none}
 
-input,button{width:100%;padding:8px;margin-top:8px} button{background:#000;color:#fff;border:none;border-radius:8px}
+.progress{height:6px;background:#eee;border-radius:10px;overflow:hidden;width:80%;margin-top:6px} .progress div{height:100%;background:#000}
 
-.detalle{background:#fff;border-radius:12px;border:1px solid #ddd;padding:15px} ul{list-style:none;padding:0} li{display:flex;align-items:center;gap:8px;margin:6px 0} .done{text-decoration:line-through;color:gray} .back{margin-bottom:10px;background:#666} </style>
+button{padding:8px;border:none;border-radius:8px;background:#000;color:#fff;width:100%;margin-top:8px} input{padding:8px;margin-top:6px;width:100%}
+
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center} .modal-content{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:320px}
+
+.detalle{background:#fff;border-radius:12px;border:1px solid #ddd;padding:15px} ul{list-style:none;padding:0} li{display:flex;align-items:center;gap:8px;margin:6px 0} .done{text-decoration:line-through;color:gray} .back{background:#666} </style>
 
 </head>
-<body><div id="home">
+<body><!-- HOME --><div id="home">
   <h1>PROYECTO X</h1>
   <h2>Bienvenido ¿qué hay hoy para hacer?</h2>  <div class="dashboard" id="hoy"></div>  <h3>Todos los parciales</h3>
   <div class="grid" id="lista"></div>
-</div><div id="detalle" class="hidden"></div><script>
-let parciales=JSON.parse(localStorage.getItem('parciales'))||[];
-let actual=null;
+</div><!-- DETALLE --><div id="detalle" class="hidden"></div><!-- MODAL NUEVO PARCIAL --><div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Nuevo parcial</h3>
+    <input id="nombre" placeholder="Nombre del parcial" />
+    <input id="fecha" type="date" />
+    <input id="emoji" placeholder="Emoji (📘🧠🔬)" />
+    <input id="color" type="color" />
+    <button onclick="guardarParcial()">Guardar</button>
+  </div>
+</div><script>
+let parciales = JSON.parse(localStorage.getItem('parciales')) || [];
+let actual = null;
 
-function guardar(){localStorage.setItem('parciales',JSON.stringify(parciales))}
-function dday(f){return Math.ceil((new Date(f)-new Date())/(1000*60*60*24))}
+function guardar(){localStorage.setItem('parciales', JSON.stringify(parciales))}
+function dday(f){return Math.ceil((new Date(f) - new Date()) / (1000*60*60*24))}
 
+/* HOME */
 function renderHome(){
-  const hoy=document.getElementById('hoy');
-  const lista=document.getElementById('lista');
-  hoy.innerHTML=''; lista.innerHTML='';
+  const hoy = document.getElementById('hoy');
+  const lista = document.getElementById('lista');
+  hoy.innerHTML = '';
+  lista.innerHTML = '';
 
   parciales.slice(0,2).forEach(p=>{
-    const div=document.createElement('div');
-    div.className='card-top';
-    div.style.borderTop=`6px solid ${p.color||'#000'}`;
-    div.innerHTML=`<div style="font-size:24px">${p.emoji||'📘'}</div><b>${p.nombre}</b><br>D-DAY ${dday(p.fecha)}<br>${p.progreso||0}%
-    <div class='progress'><div style='width:${p.progreso||0}%'></div></div>`;
+    const div = document.createElement('div');
+    div.className = 'card-top';
+    div.style.borderTop = `6px solid ${p.color}`;
+    div.innerHTML = `<div style='font-size:24px'>${p.emoji}</div><b>${p.nombre}</b><br>D-DAY ${dday(p.fecha)}<br>${p.progreso||0}%`;
     hoy.appendChild(div);
-  })
-  })
+  });
 
   parciales.forEach((p,i)=>{
-    const div=document.createElement('div');
-    div.className='parcial-card';
-    div.style.borderTop=`6px solid ${p.color||'#000'}`;
-    div.innerHTML=`<div style="font-size:28px">${p.emoji||'📘'}</div><div><b>${p.nombre}</b><br>D-DAY ${dday(p.fecha)}<br>${p.progreso||0}%</div>`;
-    div.onclick=()=>abrirDetalle(i);
+    const div = document.createElement('div');
+    div.className = 'parcial-card';
+    div.style.borderTop = `6px solid ${p.color}`;
+    div.innerHTML = `<div style='font-size:28px'>${p.emoji}</div><b>${p.nombre}</b><div>D-DAY ${dday(p.fecha)}</div><div>${p.progreso||0}%</div>`;
+    div.onclick = ()=>abrirDetalle(i);
     lista.appendChild(div);
-  })
-  })
+  });
 
-  const nuevo=document.createElement('div');
-  nuevo.className='parcial-card new';
-  nuevo.innerText='+';
-  nuevo.onclick=()=>crearParcial();
+  const nuevo = document.createElement('div');
+  nuevo.className = 'parcial-card new';
+  nuevo.innerText = '+';
+  nuevo.onclick = ()=>document.getElementById('modal').style.display='flex';
   lista.appendChild(nuevo);
 }
 
-function crearParcial(){
-  const nombre=prompt('Nombre del parcial');
-  const fecha=prompt('Fecha (YYYY-MM-DD)');
-  const emoji=prompt('Emoji del parcial (ej: 📘 🧠 🔬)');
-  const color=prompt('Color del parcial (ej: #ffcc00 o red)');
-  if(!nombre||!fecha)return;
-  parciales.push({nombre,fecha,emoji:emoji||'📘',color:color||'#ffffff',temas:[]});
+/* CREAR PARCIAL */
+function guardarParcial(){
+  const nombre = document.getElementById('nombre').value;
+  const fecha = document.getElementById('fecha').value;
+  const emoji = document.getElementById('emoji').value || '📘';
+  const color = document.getElementById('color').value || '#000000';
+  if(!nombre || !fecha) return;
+
+  parciales.push({nombre, fecha, emoji, color, temas:[], progreso:0});
   guardar();
+  document.getElementById('modal').style.display='none';
+  document.getElementById('nombre').value='';
+  document.getElementById('fecha').value='';
+  document.getElementById('emoji').value='';
   renderHome();
 }
-}
 
+/* DETALLE */
 function abrirDetalle(i){
-  actual=i;
+  actual = i;
   document.getElementById('home').classList.add('hidden');
-  document.getElementById('detalle').classList.remove('hidden');
-  renderDetalle();
-}
+  const d = document.getElementById('detalle');
+  d.classList.remove('hidden');
+  const p = parciales[i];
 
-function renderDetalle(){
-  const p=parciales[actual];
-  const cont=document.getElementById('detalle');
-  const hechos=p.temas.filter(t=>t.hecho).length;
-  const prog=p.temas.length?Math.round((hechos/p.temas.length)*100):0;
-  p.progreso=prog;
-  cont.innerHTML=`
-  <button class='back' onclick='volver()'>← Volver</button>
+  d.innerHTML = `
   <div class='detalle'>
-    <h2>${p.nombre}</h2>
+    <button class='back' onclick='volver()'>← Volver</button>
+    <h2>${p.emoji} ${p.nombre}</h2>
     <p>D-DAY ${dday(p.fecha)}</p>
-    <p>Progreso ${prog}%</p>
-    <div class='progress'><div style='width:${prog}%'></div></div>
 
     <input id='temaNuevo' placeholder='Nuevo tema' />
     <button onclick='agregarTema()'>Agregar tema</button>
@@ -105,26 +115,36 @@ function renderDetalle(){
       </li>`).join('')}
     </ul>
   </div>`;
-  guardar();
-}
-
-function agregarTema(){
-  const input=document.getElementById('temaNuevo');
-  if(!input.value)return;
-  parciales[actual].temas.push({nombre:input.value,hecho:false});
-  input.value='';
-  renderDetalle();
-}
-
-function toggleTema(j){
-  parciales[actual].temas[j].hecho=!parciales[actual].temas[j].hecho;
-  renderDetalle();
 }
 
 function volver(){
   document.getElementById('detalle').classList.add('hidden');
   document.getElementById('home').classList.remove('hidden');
   renderHome();
+}
+
+function agregarTema(){
+  const input = document.getElementById('temaNuevo');
+  if(!input.value) return;
+  parciales[actual].temas.push({nombre:input.value, hecho:false});
+  input.value='';
+  actualizarProgreso();
+  guardar();
+  abrirDetalle(actual);
+}
+
+function toggleTema(j){
+  const t = parciales[actual].temas[j];
+  t.hecho = !t.hecho;
+  actualizarProgreso();
+  guardar();
+  abrirDetalle(actual);
+}
+
+function actualizarProgreso(){
+  const t = parciales[actual].temas;
+  if(t.length===0){parciales[actual].progreso=0;return}
+  parciales[actual].progreso = Math.round((t.filter(x=>x.hecho).length/t.length)*100);
 }
 
 renderHome();
